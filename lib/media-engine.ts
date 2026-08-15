@@ -154,11 +154,12 @@ const youtubeClientProfiles = [
 
 let cookieFile: string | null | undefined;
 
-// YouTube answers datacenter IPs with "Sign in to confirm you're not a bot" for most videos.
-// A cookie jar exported from a signed-in throwaway account is yt-dlp's documented remedy.
+// YouTube, Instagram and X all answer datacenter IPs with a sign-in demand for most
+// media. A cookie jar exported from signed-in throwaway accounts is yt-dlp's documented
+// remedy; one Netscape file carries the cookies for every domain at once.
 function getCookieFile(): string | null {
   if (cookieFile !== undefined) return cookieFile;
-  const configured = process.env.YOUTUBE_COOKIES?.trim();
+  const configured = process.env.MEDIA_COOKIES?.trim();
   if (!configured) return (cookieFile = null);
   try {
     const contents = configured.includes("\t") || configured.startsWith("# ")
@@ -168,7 +169,7 @@ function getCookieFile(): string | null {
     writeFileSync(path, contents.endsWith("\n") ? contents : `${contents}\n`, { mode: 0o600 });
     return (cookieFile = path);
   } catch {
-    console.error("[media-engine] YOUTUBE_COOKIES could not be decoded; continuing without cookies.");
+    console.error("[media-engine] MEDIA_COOKIES could not be decoded; continuing without cookies.");
     return (cookieFile = null);
   }
 }
@@ -235,7 +236,7 @@ export function getMediaErrorResponse(error: unknown): MediaErrorResponse {
     return {
       status: 422,
       payload: {
-        error: "YouTube asked this server to sign in before serving this video. If this keeps happening, the saved YouTube cookies need refreshing.",
+        error: "The source asked this server to sign in before serving this media. If this keeps happening, the saved cookies need refreshing.",
         code: "youtube_verification",
         retryable: true,
       },

@@ -56,28 +56,29 @@ Paste any valid `https://...` URL. Metadata will use the local demo thumbnail. T
 
 Do not deploy with `MEDIA_ENGINE_MOCK=true` if you expect real downloads.
 
-## YouTube cookies
+## Cookies (required in production)
 
 YouTube answers requests from datacenter IP ranges — Vercel's included — with
 `Sign in to confirm you're not a bot` for most videos. Only a few heavily-cached
-older videos slip through. This is an authentication gate, not a Proof-of-Origin
-token problem, so PO tokens do not fix it; yt-dlp's documented remedy is to pass
-a cookie jar from a signed-in session.
+older videos slip through. Instagram and X gate their media the same way.
 
-Set `YOUTUBE_COOKIES` to make server-side extraction work in production:
+This is an **authentication** gate, and the only fix is to give yt-dlp a cookie
+jar from a signed-in session. Set `MEDIA_COOKIES`:
 
-1. Create a **throwaway Google account**. Do not use a personal account — YouTube
-   can lock accounts whose cookies are replayed from a server.
-2. Sign in to that account in a **private/incognito window**.
-3. Export `cookies.txt` in **Netscape format** for `youtube.com` using a
-   cookies.txt browser extension.
+1. Create a **throwaway account** on each platform you want to support. Do not use
+   personal accounts — platforms can lock accounts whose cookies are replayed from
+   a server.
+2. Sign in to each in a **private/incognito window**.
+3. Export `cookies.txt` in **Netscape format** using a cookies.txt browser
+   extension. One file can hold cookies for every domain, so export them into a
+   single file rather than one per platform.
 4. Close the private window **without signing out**, so the session is not
    invalidated.
 5. Base64-encode the file and store it:
 
    ```bash
    base64 -w0 cookies.txt          # Linux/Git Bash
-   vercel env add YOUTUBE_COOKIES production
+   vercel env add MEDIA_COOKIES production
    ```
 
 The variable also accepts the raw Netscape file text. Visitors of the deployed
@@ -87,6 +88,19 @@ the repository.
 
 Cookies expire eventually. When downloads start failing with the sign-in error
 again, repeat the export.
+
+### Why not PO tokens
+
+Proof-of-Origin tokens are what a logged-out browser uses to prove it is a real
+browser, so they look like an account-free alternative. They are not, and this was
+measured rather than assumed. Running the full BotGuard attestation inside a Vercel
+function works — Google returns an integrity token (HTTP 200, 12h TTL) and a valid
+PO token is minted. That same token successfully extracts a non-gated video, which
+proves the token itself is accepted. Gated videos still return the sign-in error.
+
+The sign-in demand is applied on IP reputation independently of PO token validity,
+so a PO token cannot lift it. The only ways past it are cookies (above) or moving
+extraction to a clean, non-datacenter egress IP.
 
 ## Important web limitation
 
