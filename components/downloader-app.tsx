@@ -212,6 +212,7 @@ export function DownloaderApp() {
         body: JSON.stringify({
           url: info.webpageUrl,
           mediaType,
+          title: info.title,
           videoFormatId: mediaType === "video" ? selectedVideo?.formatId : undefined,
           videoHeight: mediaType === "video" ? selectedVideo?.height : undefined,
           audioFormatId: mediaType === "audio" ? selectedAudioQuality?.formatId : undefined,

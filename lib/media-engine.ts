@@ -1,7 +1,7 @@
 import { createReadStream } from "node:fs";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 import { Readable } from "node:stream";
 import ffmpegPath from "ffmpeg-static";
 import { detectPlatform, isHttpUrl } from "./platform";
@@ -250,7 +250,8 @@ export async function prepareDownload(request: DownloadRequest, signal?: AbortSi
     if (!selected) throw new Error("The downloaded media file was empty.");
 
     const filePath = join(workDir, selected.name);
-    const filename = sanitizeFilename(selected.name);
+    const extension = extname(selected.name) || (request.mediaType === "audio" ? ".mp3" : ".mp4");
+    const filename = `${sanitizeFilename(request.title ?? selected.name.slice(0, -extension.length))}${extension}`;
     const cleanup = () => rm(workDir, { recursive: true, force: true });
     return {
       filename,

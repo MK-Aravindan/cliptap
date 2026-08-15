@@ -36,6 +36,7 @@ export async function POST(request: Request) {
     prepared = await prepareDownload({
       url: body.url.trim(),
       mediaType: body.mediaType,
+      title: body.title,
       videoFormatId: body.videoFormatId,
       videoHeight: body.videoHeight,
       audioFormatId: body.audioFormatId,

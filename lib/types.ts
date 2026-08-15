@@ -35,6 +35,7 @@ export interface MediaInfo {
 export interface DownloadRequest {
   url: string;
   mediaType: MediaType;
+  title?: string;
   videoFormatId?: string;
   videoHeight?: number;
   audioFormatId?: string;
