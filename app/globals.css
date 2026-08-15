@@ -37,7 +37,7 @@ button, input, select { font: inherit; }
 button { cursor: pointer; }
 button:disabled { cursor: not-allowed; }
 
-.app-shell { min-height: 100dvh; padding-bottom: 82px; }
+.app-shell { min-height: 100dvh; }
 .app-header {
   height: 76px;
   padding: 0 20px;
@@ -67,7 +67,7 @@ button:disabled { cursor: not-allowed; }
 }
 .mobile-menu-button:hover, .icon-button:hover { background: #f1f5fb; color: var(--text); }
 .mobile-menu-popover {
-  position: absolute; top: 66px; right: 14px; width: 170px; padding: 7px;
+  position: absolute; top: calc(100% + 8px); right: 14px; width: 170px; padding: 7px;
   border: 1px solid var(--line); border-radius: 14px; background: white; box-shadow: var(--shadow-md);
   display: grid; gap: 3px;
 }
@@ -75,7 +75,6 @@ button:disabled { cursor: not-allowed; }
 .mobile-menu-popover button:hover { background: #f3f7fc; }
 
 .desktop-layout { width: 100%; max-width: 1260px; margin: 0 auto; }
-.sidebar { display: none; }
 .content-area, .downloader-layout, .main-panel, .status-panel { width: 100%; min-width: 0; }
 .main-panel, .status-panel { padding: 18px 18px 0; }
 .section-block { margin-bottom: 20px; }
@@ -366,13 +365,6 @@ button:disabled { cursor: not-allowed; }
 .feature-strip strong { font-size: 10.5px; color: #344357; }
 .feature-strip small { margin-top: 2px; font-size: 9px; color: #8a96a7; line-height: 1.25; }
 
-.bottom-nav {
-  position: fixed; left: 0; right: 0; bottom: 0; height: 72px; padding: 5px 14px env(safe-area-inset-bottom); z-index: 45;
-  display: grid; grid-template-columns: repeat(3,1fr); align-items: center; background: rgba(255,255,255,.94); border-top: 1px solid #e0e7f0; backdrop-filter: blur(18px);
-}
-.bottom-nav button { height: 58px; border: 0; background: transparent; color: #687587; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; font-size: 10.5px; font-weight: 600; }
-.bottom-nav button.is-active { color: var(--blue); }
-
 .secondary-view { padding: 24px 18px 94px; }
 .view-heading-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 22px; }
 .eyeline { margin: 0 0 5px; color: var(--blue); font-size: 11px; font-weight: 760; text-transform: uppercase; letter-spacing: .09em; }
@@ -410,19 +402,8 @@ button:disabled { cursor: not-allowed; }
 }
 
 @media (min-width: 760px) {
-  .app-shell { padding-bottom: 0; }
   .app-header { height: 72px; position: sticky; top: 0; border-bottom-color: var(--line-soft); }
-  .mobile-menu-button, .mobile-menu-popover, .bottom-nav { display: none; }
-  .desktop-layout { display: grid; grid-template-columns: 166px 1fr; min-height: calc(100dvh - 72px); }
-  .sidebar { display: flex; flex-direction: column; position: sticky; top: 72px; align-self: start; height: calc(100dvh - 72px); overflow: hidden; padding: 18px 12px 20px; border-right: 1px solid var(--line-soft); background: rgba(255,255,255,.72); }
-  .sidebar-brand-space { display: none; }
-  .sidebar nav { display: grid; gap: 5px; }
-  .sidebar nav button { width: 100%; height: 43px; border: 0; border-radius: 10px; background: transparent; color: #67758a; display: flex; align-items: center; gap: 10px; padding: 0 12px; text-align: left; font-size: 12px; font-weight: 650; }
-  .sidebar nav button.is-active { color: var(--blue); background: #eaf3ff; }
-  .sidebar-note { margin-top: auto; border: 1px solid #e0e9f4; border-radius: 12px; padding: 12px; background: #fff; }
-  .privacy-dot { width: 7px; height: 7px; border-radius: 50%; background: #23b96b; display: inline-block; margin-right: 5px; }
-  .sidebar-note strong { font-size: 10px; color: #4d5c70; }
-  .sidebar-note p { margin: 5px 0 0; font-size: 9px; line-height: 1.45; color: #8995a6; }
+  .desktop-layout { min-height: calc(100dvh - 72px); }
   .content-area { padding: 0; }
   .downloader-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(260px, .75fr); gap: 22px; padding: 26px; }
   .main-panel, .status-panel { padding: 0; }
@@ -445,8 +426,6 @@ button:disabled { cursor: not-allowed; }
 
 @media (min-width: 1080px) {
   .app-header { padding: 0 max(28px, calc((100vw - 1260px)/2 + 20px)); }
-  .desktop-layout { grid-template-columns: 190px 1fr; }
-  .sidebar { padding-inline: 15px; }
   .downloader-layout { grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 30px; padding: 34px 36px; }
   .main-panel { max-width: 720px; }
   .url-field { height: 52px; }

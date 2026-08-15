@@ -18,7 +18,6 @@ import {
 import { Brand } from "./brand";
 import { CustomSelect } from "./custom-select";
 import { MediaPreview } from "./media-preview";
-import { BottomNav, Sidebar } from "./navigation";
 import { HistoryView } from "./history-view";
 import { SettingsView } from "./settings-view";
 import { isHttpUrl } from "@/lib/platform";
@@ -334,8 +333,6 @@ export function DownloaderApp() {
       </header>
 
       <div className="desktop-layout">
-        <Sidebar active={view} onChange={handleView} />
-
         <div className="content-area">
           {view === "history" ? (
             <HistoryView items={history} onClear={clearHistory} onReuse={reuseHistory} />
@@ -467,8 +464,6 @@ export function DownloaderApp() {
           )}
         </div>
       </div>
-
-      <BottomNav active={view} onChange={handleView} />
     </main>
   );
 }
