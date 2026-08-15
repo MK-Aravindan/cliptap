@@ -4,6 +4,7 @@ import type { DownloadRequest } from "@/lib/types";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
+export const preferredRegion = "bom1";
 
 function contentTypeFor(filename: string): string {
   const lower = filename.toLowerCase();
