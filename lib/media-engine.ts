@@ -203,7 +203,7 @@ export async function prepareDownload(request: DownloadRequest, signal?: AbortSi
   if (!ffmpegPath) throw new Error("FFmpeg executable could not be resolved. Reinstall ffmpeg-static.");
 
   const workDir = await mkdtemp(join(tmpdir(), "cliptap-"));
-  const outputTemplate = join(workDir, "%(title).120s-%(id)s.%(ext)s");
+  const outputTemplate = join(workDir, "%(title).180s.%(ext)s");
   const args = [
     ...commonArgs(),
     "--restrict-filenames",
