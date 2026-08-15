@@ -325,6 +325,7 @@ button:disabled { cursor: not-allowed; }
 .status-panel { padding-top: 1px; }
 .status-header-desktop { display: none; }
 .status-stack { display: grid; gap: 13px; }
+.status-stack > * { min-width: 0; }
 .status-card { border: 1px solid var(--line-soft); border-radius: 15px; padding: 14px; background: #fff; box-shadow: var(--shadow-sm); }
 .status-title-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .status-title-row .step-label { margin: 0; }
@@ -446,7 +447,7 @@ button:disabled { cursor: not-allowed; }
   .app-header { padding: 0 max(28px, calc((100vw - 1260px)/2 + 20px)); }
   .desktop-layout { grid-template-columns: 190px 1fr; }
   .sidebar { padding-inline: 15px; }
-  .downloader-layout { grid-template-columns: minmax(560px, 1.35fr) minmax(330px, .65fr); gap: 30px; padding: 34px 36px; }
+  .downloader-layout { grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr); gap: 30px; padding: 34px 36px; }
   .main-panel { max-width: 720px; }
   .url-field { height: 52px; }
   .preview-card { grid-template-columns: 38% 1fr; min-height: 160px; }
