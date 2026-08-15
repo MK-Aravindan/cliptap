@@ -153,6 +153,7 @@ function commonArgs(): string[] {
     "--geo-bypass",
     "--socket-timeout", "15",
     "--js-runtimes", "node",
+    "--extractor-args", "youtube:player_client=android_vr",
   ];
 }
 
