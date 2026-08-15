@@ -179,10 +179,13 @@ export function formatMediaError(error: unknown): string {
 
 async function runMediaCommand(url: string, extraArgs: string[], timeoutMs: number, signal?: AbortSignal) {
   const profiles = detectPlatform(url) === "youtube" ? youtubeClientProfiles : [youtubeClientProfiles[0]];
+  const deadline = Date.now() + timeoutMs;
   let lastError: unknown;
   for (const profile of profiles) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
     try {
-      return await runYtDlp([...commonArgs(profile), ...extraArgs], timeoutMs, signal);
+      return await runYtDlp([...commonArgs(profile), ...extraArgs], remainingMs, signal);
     } catch (error) {
       lastError = error;
       if (detectPlatform(url) !== "youtube" || !isYoutubeChallenge(error)) throw error;
