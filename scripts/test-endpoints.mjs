@@ -3,6 +3,8 @@ import { tmpdir } from "node:os";
 
 const BASE_URL = "http://localhost:3000";
 const TEST_YT_URL = "https://www.youtube.com/watch?v=aqz-KE-bpKQ"; // Big Buck Bunny 60fps 4K - Official Blender Foundation short clip / trailer
+const TEST_YOUTUBE_CHALLENGE_URL = "https://youtu.be/EJrkP6zf09g?si=GCDNUvVnzks4mOSk";
+const TEST_YOUTUBE_MUSIC_URL = "https://music.youtube.com/watch?v=dQw4w9WgXcQ";
 const TEST_INSTAGRAM_URL = "https://www.instagram.com/reels/C8-q0w9yW9F/"; // Public reel sample
 
 async function runTests() {
@@ -33,8 +35,41 @@ async function runTests() {
     throw new Error("Invalid info structure returned from /api/media/info");
   }
 
-  // 1b. Test Widescreen / Cinematic aspect ratio URL resolution mapping
-  console.log("\nTest 1b: Widescreen resolution mapping for cinematic video...");
+  // Regression coverage for YouTube URLs that can trigger a server-side bot challenge.
+  console.log("\nTest 1a: YouTube client fallback for a challenged public URL...");
+  const challengedRes = await fetch(`${BASE_URL}/api/media/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: TEST_YOUTUBE_CHALLENGE_URL }),
+  });
+  if (!challengedRes.ok) {
+    const err = await challengedRes.text();
+    throw new Error(`Challenged YouTube URL failed with HTTP ${challengedRes.status}: ${err}`);
+  }
+  const challengedInfo = await challengedRes.json();
+  console.log(`✓ Challenged URL fetched: Title="${challengedInfo.title}", qualities=${challengedInfo.videoQualities.length}`);
+  if (!challengedInfo.title || !challengedInfo.videoQualities.length) {
+    throw new Error("Challenged YouTube URL returned incomplete metadata");
+  }
+
+  console.log("\nTest 1b: YouTube Music metadata and audio formats...");
+  const musicRes = await fetch(`${BASE_URL}/api/media/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: TEST_YOUTUBE_MUSIC_URL }),
+  });
+  if (!musicRes.ok) {
+    const err = await musicRes.text();
+    throw new Error(`YouTube Music URL failed with HTTP ${musicRes.status}: ${err}`);
+  }
+  const musicInfo = await musicRes.json();
+  console.log(`✓ YouTube Music fetched: Title="${musicInfo.title}", audio formats=${musicInfo.audioQualities.length}`);
+  if (musicInfo.platform !== "youtube" || !musicInfo.audioQualities.length) {
+    throw new Error("YouTube Music did not return a downloadable audio format");
+  }
+
+  // 1c. Test Widescreen / Cinematic aspect ratio URL resolution mapping
+  console.log("\nTest 1c: Widescreen resolution mapping for cinematic video...");
   const widescreenRes = await fetch(`${BASE_URL}/api/media/info`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -121,6 +156,29 @@ async function runTests() {
 
   if (audioBuffer.length < 10000 || !audioType?.includes("audio/mpeg")) {
     throw new Error("Audio file failed MP3 conversion or is suspiciously small.");
+  }
+
+  await new Promise(r => setTimeout(r, 1500));
+  console.log("\nTest 3b: YouTube Music audio-to-MP3 download...");
+  const musicAudioRes = await fetch(`${BASE_URL}/api/media/download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      url: TEST_YOUTUBE_MUSIC_URL,
+      mediaType: "audio",
+      audioFormatId: musicInfo.audioQualities[0]?.formatId,
+      audioBitrate: musicInfo.audioQualities[0]?.bitrate,
+      title: musicInfo.title,
+    }),
+  });
+  if (!musicAudioRes.ok) {
+    const err = await musicAudioRes.text();
+    throw new Error(`YouTube Music audio download failed with HTTP ${musicAudioRes.status}: ${err}`);
+  }
+  const musicAudioBuffer = Buffer.from(await musicAudioRes.arrayBuffer());
+  console.log(`✓ YouTube Music audio downloaded (${(musicAudioBuffer.length / 1024 / 1024).toFixed(2)} MB)`);
+  if (musicAudioBuffer.length < 10000 || !musicAudioRes.headers.get("content-type")?.includes("audio/mpeg")) {
+    throw new Error("YouTube Music audio conversion failed or is suspiciously small.");
   }
 
   // 4. Resolution selection (360p)

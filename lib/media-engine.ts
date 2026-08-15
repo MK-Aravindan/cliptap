@@ -145,7 +145,13 @@ function mockInfo(url: string): MediaInfo {
   };
 }
 
-function commonArgs(): string[] {
+const youtubeClientProfiles = [
+  "tv_embedded,mweb,android_vr,web_embedded",
+  "android,web_embedded,mweb",
+  "tv,mweb,web_embedded",
+] as const;
+
+function commonArgs(youtubeClients: string = youtubeClientProfiles[0]): string[] {
   return [
     "--no-playlist",
     "--no-warnings",
@@ -153,16 +159,34 @@ function commonArgs(): string[] {
     "--geo-bypass",
     "--socket-timeout", "15",
     "--js-runtimes", "node",
-    "--extractor-args", "youtube:player_client=android_vr,web_embedded",
+    "--extractor-args", `youtube:player_client=${youtubeClients}`,
   ];
+}
+
+function isYoutubeChallenge(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /sign in to confirm|not a bot|po.?token|requested format is not available|http error 403/i.test(message);
+}
+
+async function runMediaCommand(url: string, extraArgs: string[], timeoutMs: number, signal?: AbortSignal) {
+  const profiles = detectPlatform(url) === "youtube" ? youtubeClientProfiles : [youtubeClientProfiles[0]];
+  let lastError: unknown;
+  for (const profile of profiles) {
+    try {
+      return await runYtDlp([...commonArgs(profile), ...extraArgs], timeoutMs, signal);
+    } catch (error) {
+      lastError = error;
+      if (detectPlatform(url) !== "youtube" || !isYoutubeChallenge(error)) throw error;
+    }
+  }
+  throw lastError instanceof Error ? lastError : new Error("The media processor failed.");
 }
 
 export async function fetchMediaInfo(url: string, signal?: AbortSignal): Promise<MediaInfo> {
   if (!isHttpUrl(url)) throw new Error("Please enter a valid http(s) media URL.");
   if (process.env.MEDIA_ENGINE_MOCK === "true") return mockInfo(url);
 
-  const { stdout } = await runYtDlp([
-    ...commonArgs(),
+  const { stdout } = await runMediaCommand(url, [
     "--dump-single-json",
     "--skip-download",
     url,
@@ -205,7 +229,6 @@ export async function prepareDownload(request: DownloadRequest, signal?: AbortSi
   const workDir = await mkdtemp(join(tmpdir(), "cliptap-"));
   const outputTemplate = join(workDir, "%(title).180s.%(ext)s");
   const args = [
-    ...commonArgs(),
     "--restrict-filenames",
     "--ffmpeg-location", ffmpegPath,
     "-o", outputTemplate,
@@ -236,7 +259,7 @@ export async function prepareDownload(request: DownloadRequest, signal?: AbortSi
   args.push(request.url);
 
   try {
-    await runYtDlp(args, 290_000, signal);
+    await runMediaCommand(request.url, args, 290_000, signal);
     const entries = await readdir(workDir);
     const candidates = entries.filter((name) => !name.endsWith(".part") && !name.endsWith(".ytdl") && !name.endsWith(".temp"));
     if (!candidates.length) throw new Error("The media processor finished without creating a file.");
