@@ -146,10 +146,10 @@ function mockInfo(url: string): MediaInfo {
 }
 
 const youtubeClientProfiles = [
-  "android_vr,web_embedded",
-  "web_creator,android_vr",
-  "tv_simply,android_vr",
-  "android,web_embedded",
+  "android_vr,web_embedded;skip=hls,dash",
+  "web_creator,android_vr;skip=hls,dash",
+  "tv_simply,android_vr;skip=hls,dash",
+  "android,web_embedded;skip=hls,dash",
 ] as const;
 
 function commonArgs(youtubeClients: string = youtubeClientProfiles[0]): string[] {
