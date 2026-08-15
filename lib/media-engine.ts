@@ -236,7 +236,9 @@ export function getMediaErrorResponse(error: unknown): MediaErrorResponse {
     return {
       status: 422,
       payload: {
-        error: "The source asked this server to sign in before serving this media. If this keeps happening, the saved cookies need refreshing.",
+        error: process.env.MEDIA_COOKIES?.trim()
+          ? "The saved sign-in cookies have expired. Export a fresh cookies.txt to restore downloads."
+          : "This media needs a signed-in session, and no cookies are configured on this server.",
         code: "youtube_verification",
         retryable: true,
       },
