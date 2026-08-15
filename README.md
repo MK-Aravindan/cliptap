@@ -56,6 +56,38 @@ Paste any valid `https://...` URL. Metadata will use the local demo thumbnail. T
 
 Do not deploy with `MEDIA_ENGINE_MOCK=true` if you expect real downloads.
 
+## YouTube cookies
+
+YouTube answers requests from datacenter IP ranges — Vercel's included — with
+`Sign in to confirm you're not a bot` for most videos. Only a few heavily-cached
+older videos slip through. This is an authentication gate, not a Proof-of-Origin
+token problem, so PO tokens do not fix it; yt-dlp's documented remedy is to pass
+a cookie jar from a signed-in session.
+
+Set `YOUTUBE_COOKIES` to make server-side extraction work in production:
+
+1. Create a **throwaway Google account**. Do not use a personal account — YouTube
+   can lock accounts whose cookies are replayed from a server.
+2. Sign in to that account in a **private/incognito window**.
+3. Export `cookies.txt` in **Netscape format** for `youtube.com` using a
+   cookies.txt browser extension.
+4. Close the private window **without signing out**, so the session is not
+   invalidated.
+5. Base64-encode the file and store it:
+
+   ```bash
+   base64 -w0 cookies.txt          # Linux/Git Bash
+   vercel env add YOUTUBE_COOKIES production
+   ```
+
+The variable also accepts the raw Netscape file text. Visitors of the deployed
+site never sign in to anything — this is a single server-side identity, and the
+cookie jar is written to the function's temporary directory at runtime, never to
+the repository.
+
+Cookies expire eventually. When downloads start failing with the sign-in error
+again, repeat the export.
+
 ## Important web limitation
 
 The selected prototype contains native-style “Open file / Show in folder” actions. A normal web page cannot reliably open the operating system file manager after a browser download. The implementation therefore uses **Download again** and **Copy source** after completion while preserving the visual hierarchy.

@@ -1,4 +1,4 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, writeFileSync } from "node:fs";
 import { mkdtemp, readdir, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join } from "node:path";
@@ -152,7 +152,29 @@ const youtubeClientProfiles = [
   "android,web_embedded;skip=hls,dash",
 ] as const;
 
+let cookieFile: string | null | undefined;
+
+// YouTube answers datacenter IPs with "Sign in to confirm you're not a bot" for most videos.
+// A cookie jar exported from a signed-in throwaway account is yt-dlp's documented remedy.
+function getCookieFile(): string | null {
+  if (cookieFile !== undefined) return cookieFile;
+  const configured = process.env.YOUTUBE_COOKIES?.trim();
+  if (!configured) return (cookieFile = null);
+  try {
+    const contents = configured.includes("\t") || configured.startsWith("# ")
+      ? configured
+      : Buffer.from(configured, "base64").toString("utf8");
+    const path = join(tmpdir(), "cliptap-cookies.txt");
+    writeFileSync(path, contents.endsWith("\n") ? contents : `${contents}\n`, { mode: 0o600 });
+    return (cookieFile = path);
+  } catch {
+    console.error("[media-engine] YOUTUBE_COOKIES could not be decoded; continuing without cookies.");
+    return (cookieFile = null);
+  }
+}
+
 function commonArgs(youtubeClients: string = youtubeClientProfiles[0]): string[] {
+  const cookies = getCookieFile();
   return [
     "--no-playlist",
     "--no-warnings",
@@ -161,6 +183,7 @@ function commonArgs(youtubeClients: string = youtubeClientProfiles[0]): string[]
     "--socket-timeout", "15",
     "--js-runtimes", "node",
     "--extractor-args", `youtube:player_client=${youtubeClients}`,
+    ...(cookies ? ["--cookies", cookies] : []),
   ];
 }
 
@@ -212,7 +235,7 @@ export function getMediaErrorResponse(error: unknown): MediaErrorResponse {
     return {
       status: 422,
       payload: {
-        error: "YouTube asked for browser verification for this server request. ClipTap does not store browser cookies; please retry later or use another public URL.",
+        error: "YouTube asked this server to sign in before serving this video. If this keeps happening, the saved YouTube cookies need refreshing.",
         code: "youtube_verification",
         retryable: true,
       },
