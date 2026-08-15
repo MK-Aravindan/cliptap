@@ -11,6 +11,7 @@ pnpm-debug.log*
 .DS_Store
 *.tsbuildinfo
 .vercel
+.playwright-mcp/
 /bin/yt-dlp
 /bin/yt-dlp.exe
 
