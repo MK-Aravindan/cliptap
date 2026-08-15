@@ -146,9 +146,10 @@ function mockInfo(url: string): MediaInfo {
 }
 
 const youtubeClientProfiles = [
-  "tv_embedded,mweb,android_vr,web_embedded",
-  "android,web_embedded,mweb",
-  "tv,mweb,web_embedded",
+  "android_vr,web_embedded",
+  "web_creator,android_vr",
+  "tv_simply,android_vr",
+  "android,web_embedded",
 ] as const;
 
 function commonArgs(youtubeClients: string = youtubeClientProfiles[0]): string[] {
