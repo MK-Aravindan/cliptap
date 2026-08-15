@@ -169,12 +169,69 @@ function isYoutubeChallenge(error: unknown): boolean {
   return /sign in to confirm|not a bot|po.?token|requested format is not available|http error 403/i.test(message);
 }
 
-export function formatMediaError(error: unknown): string {
-  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
-  if (/sign in to confirm|not a bot|po.?token/i.test(message)) {
-    return "YouTube asked for browser verification for this server request. ClipTap does not store browser cookies; please retry later or use another public URL.";
+export type MediaErrorCode =
+  | "invalid_request"
+  | "invalid_json"
+  | "cancelled"
+  | "timeout"
+  | "youtube_verification"
+  | "rate_limited"
+  | "media_unavailable"
+  | "upstream_unavailable"
+  | "internal";
+
+export interface MediaErrorPayload {
+  error: string;
+  code: MediaErrorCode;
+  retryable: boolean;
+}
+
+export interface MediaErrorResponse {
+  status: number;
+  payload: MediaErrorPayload;
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : typeof error === "string" ? error : "";
+}
+
+export function getMediaErrorResponse(error: unknown): MediaErrorResponse {
+  const message = errorMessage(error);
+  const lower = message.toLowerCase();
+
+  if (/valid http\(s\) media url|invalid media url/.test(lower)) {
+    return { status: 400, payload: { error: "Please provide a valid http(s) media URL.", code: "invalid_request", retryable: false } };
   }
-  return message || "Unable to process this media URL.";
+  if (/cancelled|aborted/.test(lower)) {
+    return { status: 499, payload: { error: "The request was cancelled.", code: "cancelled", retryable: true } };
+  }
+  if (/timed out|timeout|deadline exceeded/.test(lower)) {
+    return { status: 504, payload: { error: "The media source took too long to respond. Try again.", code: "timeout", retryable: true } };
+  }
+  if (/sign in to confirm|not a bot|po.?token|http error 403/.test(lower)) {
+    return {
+      status: 422,
+      payload: {
+        error: "YouTube asked for browser verification for this server request. ClipTap does not store browser cookies; please retry later or use another public URL.",
+        code: "youtube_verification",
+        retryable: true,
+      },
+    };
+  }
+  if (/rate limit|too many requests|http error 429/.test(lower)) {
+    return { status: 429, payload: { error: "The media source is temporarily rate-limiting requests. Wait a moment and try again.", code: "rate_limited", retryable: true } };
+  }
+  if (/instagram sent an empty media response|login required|private|unavailable|no formats|requested format is not available|unsupported url/.test(lower)) {
+    return { status: 422, payload: { error: "This link is not publicly downloadable or no media format is available.", code: "media_unavailable", retryable: false } };
+  }
+  if (/network|connection|dns|could not resolve|unable to download/.test(lower)) {
+    return { status: 503, payload: { error: "The media source could not be reached. Check the link and try again.", code: "upstream_unavailable", retryable: true } };
+  }
+  return { status: 500, payload: { error: "ClipTap could not process this media URL. Try again later.", code: "internal", retryable: false } };
+}
+
+export function formatMediaError(error: unknown): string {
+  return getMediaErrorResponse(error).payload.error;
 }
 
 async function runMediaCommand(url: string, extraArgs: string[], timeoutMs: number, signal?: AbortSignal) {

@@ -87,6 +87,23 @@ function triggerBlobDownload(blob: Blob, filename: string) {
   window.setTimeout(() => URL.revokeObjectURL(href), 30_000);
 }
 
+async function responseErrorMessage(response: Response, fallback: string): Promise<string> {
+  const text = await response.text();
+  if (!text) return fallback;
+  try {
+    const payload = JSON.parse(text) as { error?: unknown };
+    return typeof payload.error === "string" && payload.error.trim() ? payload.error : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function clientErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof DOMException && error.name === "AbortError") return "The request was cancelled.";
+  if (error instanceof TypeError) return "ClipTap could not reach the server. Check your connection and try again.";
+  return error instanceof Error && error.message ? error.message : fallback;
+}
+
 export function DownloaderApp() {
   const [view, setView] = useState<AppView>("downloader");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -132,8 +149,13 @@ export function DownloaderApp() {
         body: JSON.stringify({ url: normalized }),
         signal: controller.signal,
       });
-      const payload = await response.json() as MediaInfo | { error?: string };
-      if (!response.ok) throw new Error("error" in payload ? payload.error || "Unable to analyze this URL." : "Unable to analyze this URL.");
+      if (!response.ok) throw new Error(await responseErrorMessage(response, "Unable to analyze this URL."));
+      let payload: MediaInfo;
+      try {
+        payload = await response.json() as MediaInfo;
+      } catch {
+        throw new Error("The server returned an invalid media response.");
+      }
       const media = payload as MediaInfo;
       setInfo(media);
       lastAnalyzedUrl.current = normalized;
@@ -142,7 +164,7 @@ export function DownloaderApp() {
       setSelectedAudio(media.audioQualities[0]?.formatId ?? "");
     } catch (error) {
       if (controller.signal.aborted) return;
-      setAnalysisError(error instanceof Error ? error.message : "Unable to analyze this URL.");
+      setAnalysisError(clientErrorMessage(error, "Unable to analyze this URL."));
     } finally {
       if (!controller.signal.aborted) setAnalyzing(false);
     }
@@ -221,8 +243,7 @@ export function DownloaderApp() {
       });
 
       if (!response.ok) {
-        const payload = await response.json().catch(() => ({ error: "Download failed." })) as { error?: string };
-        throw new Error(payload.error || "Download failed.");
+        throw new Error(await responseErrorMessage(response, "Download failed."));
       }
       if (!response.body) throw new Error("The server did not return a downloadable file.");
 
@@ -280,7 +301,7 @@ export function DownloaderApp() {
         setDownload({ ...INITIAL_DOWNLOAD, error: "Download cancelled." });
         return;
       }
-      setDownload({ ...INITIAL_DOWNLOAD, phase: "error", error: error instanceof Error ? error.message : "Download failed." });
+      setDownload({ ...INITIAL_DOWNLOAD, phase: "error", error: clientErrorMessage(error, "Download failed.") });
     }
   }, [canDownload, info, mediaType, saveHistory, selectedAudioQuality, selectedQualityLabel, selectedVideo]);
 

@@ -215,17 +215,44 @@ async function runTests() {
   } else {
     const instaErr = await instaRes.json();
     console.log(`ℹ Instagram request handled gracefully: status=${instaRes.status}, error="${instaErr.error}"`);
+    if (!instaErr.error || !instaErr.code || typeof instaErr.retryable !== "boolean" || /Traceback|File "|yt_dlp/i.test(instaErr.error)) {
+      throw new Error("Instagram error response was missing its safe error contract");
+    }
   }
 
   // 6. Error handling tests
   console.log("\nTest 6: Error handling for invalid inputs...");
+  const malformedInfoRes = await fetch(`${BASE_URL}/api/media/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: "{",
+  });
+  const malformedInfoBody = await malformedInfoRes.json();
+  if (malformedInfoRes.status !== 400 || malformedInfoBody.code !== "invalid_json" || malformedInfoBody.retryable !== false) {
+    throw new Error(`Malformed JSON was not rejected safely: HTTP ${malformedInfoRes.status}`);
+  }
+  console.log(`  Malformed JSON response status: ${malformedInfoRes.status} (expected 400)`);
+
+  const emptyInfoRes = await fetch(`${BASE_URL}/api/media/info`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({}),
+  });
+  const emptyInfoBody = await emptyInfoRes.json();
+  if (emptyInfoRes.status !== 400 || emptyInfoBody.code !== "invalid_request") {
+    throw new Error(`Missing media URL was not rejected safely: HTTP ${emptyInfoRes.status}`);
+  }
+
   const invalidUrlRes = await fetch(`${BASE_URL}/api/media/info`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: "not-a-valid-url" }),
   });
-  console.log(`  Invalid URL response status: ${invalidUrlRes.status} (expected 400 or 422)`);
+  console.log(`  Invalid URL response status: ${invalidUrlRes.status} (expected 400)`);
   const invalidBody = await invalidUrlRes.json();
+  if (invalidUrlRes.status !== 400 || invalidBody.code !== "invalid_request" || invalidBody.retryable !== false) {
+    throw new Error(`Invalid URL error contract was incorrect: HTTP ${invalidUrlRes.status}`);
+  }
   console.log(`  Error message returned: "${invalidBody.error}"`);
 
   const emptyReq = await fetch(`${BASE_URL}/api/media/download`, {
@@ -233,7 +260,28 @@ async function runTests() {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({}),
   });
+  const emptyBody = await emptyReq.json();
+  if (emptyReq.status !== 400 || emptyBody.code !== "invalid_request" || emptyBody.retryable !== false) {
+    throw new Error(`Empty download request was not rejected safely: HTTP ${emptyReq.status}`);
+  }
   console.log(`  Empty download request status: ${emptyReq.status} (expected 400)`);
+
+  const invalidTypeRes = await fetch(`${BASE_URL}/api/media/download`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ url: TEST_YT_URL, mediaType: "image" }),
+  });
+  const invalidTypeBody = await invalidTypeRes.json();
+  if (invalidTypeRes.status !== 400 || invalidTypeBody.code !== "invalid_request") {
+    throw new Error(`Invalid media type was not rejected safely: HTTP ${invalidTypeRes.status}`);
+  }
+
+  const methodRes = await fetch(`${BASE_URL}/api/media/info`);
+  const methodBody = await methodRes.json();
+  if (methodRes.status !== 405 || methodBody.code !== "invalid_request" || methodRes.headers.get("allow") !== "POST") {
+    throw new Error(`Unsupported method was not handled safely: HTTP ${methodRes.status}`);
+  }
+  console.log(`  Unsupported method response status: ${methodRes.status} (expected 405)`);
 
   // 7. Temporary-file cleanup check
   console.log("\nTest 7: Checking temporary file cleanup...");
