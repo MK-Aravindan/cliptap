@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { fetchMediaInfo } from "@/lib/media-engine";
+import { fetchMediaInfo, formatMediaError } from "@/lib/media-engine";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
-export const preferredRegion = "bom1";
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +15,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "private, max-age=60" },
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to analyze this URL.";
+    const message = formatMediaError(error);
     return NextResponse.json({ error: message }, { status: 422 });
   }
 }

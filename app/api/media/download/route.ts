@@ -1,10 +1,9 @@
-import { prepareDownload } from "@/lib/media-engine";
+import { formatMediaError, prepareDownload } from "@/lib/media-engine";
 import type { DownloadRequest } from "@/lib/types";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 export const maxDuration = 300;
-export const preferredRegion = "bom1";
 
 function contentTypeFor(filename: string): string {
   const lower = filename.toLowerCase();
@@ -56,7 +55,7 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (prepared) await prepared.cleanup().catch(() => undefined);
-    const message = error instanceof Error ? error.message : "Download failed.";
+    const message = formatMediaError(error);
     return Response.json({ error: message }, { status: 422 });
   }
 }

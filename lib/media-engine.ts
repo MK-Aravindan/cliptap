@@ -169,6 +169,14 @@ function isYoutubeChallenge(error: unknown): boolean {
   return /sign in to confirm|not a bot|po.?token|requested format is not available|http error 403/i.test(message);
 }
 
+export function formatMediaError(error: unknown): string {
+  const message = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  if (/sign in to confirm|not a bot|po.?token/i.test(message)) {
+    return "YouTube asked for browser verification for this server request. ClipTap does not store browser cookies; please retry later or use another public URL.";
+  }
+  return message || "Unable to process this media URL.";
+}
+
 async function runMediaCommand(url: string, extraArgs: string[], timeoutMs: number, signal?: AbortSignal) {
   const profiles = detectPlatform(url) === "youtube" ? youtubeClientProfiles : [youtubeClientProfiles[0]];
   let lastError: unknown;
